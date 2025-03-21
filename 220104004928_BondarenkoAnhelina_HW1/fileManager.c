@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <unistd.h>
@@ -6,304 +5,276 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <dirent.h>
-#include <unistd.h>
-#include <dirent.h>
 #include <time.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <stdarg.h>
 #include "fileManager.h"
 
-void createDir(const char* folderName, const int logFile){
+#define STDOUT 1
+#define STDERR 2
+
+void write_message(int fd, const char *message) {
+    write(fd, message, strlen(message));
+}
+
+void createDir(const char* folderName, const int logFile) {
     if (mkdir(folderName, 0777) == -1) {  
         if (errno == EEXIST) {
-            printf("Error: Directory '%s' already exists.", folderName);
-            saveLogs("Error: Directory '%s' already exists.", logFile, folderName);
+            write_message(STDOUT, "Error: Directory already exists \n");
+            saveLogs("Error: Directory already exists: ", logFile, folderName, NULL);
         } else {
-            printf("Error: Creating directory '%s' failed.", folderName);
-            saveLogs("Error: Creating directory '%s' failed.", logFile, folderName);
+            write_message(STDOUT, "Error: Creating directory failed \n");
+            saveLogs("Error: Creating directory failed: ", logFile, folderName, NULL);
         }
     } else {
-        printf("Directory '%s' created successfuly", folderName);
-        saveLogs("Directory '%s' created successfuly", logFile, folderName);
+        write_message(STDOUT, "Directory created successfully \n");
+        saveLogs("Directory created successfully: ", logFile, folderName, NULL);
     }
 }
 
-void createFile(const char* fileName, const int logFile){
-    int fd = open(fileName, O_CREAT | O_EXCL, 0777);
+void createFile(const char* fileName, const int logFile) {
+    int fd = open(fileName, O_CREAT | O_EXCL | O_WRONLY, 0777);
     if (fd == -1) {
         if (errno == EEXIST) {
-            printf("Error: File '%s' already exists.", fileName);
-            saveLogs("Error: File '%s' already exists.", logFile, fileName);
+            write_message(STDOUT, "Error: File already exists \n");
+            saveLogs("Error: File already exists: ", logFile, fileName, NULL);
         } else {
-            printf("Error: Creating File '%s' failed.", fileName);
-            saveLogs("Error: Creating File '%s' failed.", logFile, fileName);
+            write_message(STDOUT, "Error: Creating file failed \n");
+            saveLogs("Error: Creating file failed: ", logFile, fileName, NULL);
         }
     } else {
-        printf("File '%s' created successfuly", fileName);
-        saveLogs("File '%s' created successfuly", logFile, fileName);
+        write_message(STDOUT, "File created successfully \n");
+        saveLogs("File created successfully: ", logFile, fileName, NULL);
     }
     close(fd);
 }
 
-void listDir(const char *folderName ,const int logFile) {
-    pid_t pid = fork(); // Create a new process
-
+void listDir(const char *folderName, const int logFile) {
+    pid_t pid = fork();
     if (pid < 0) {
-        printf("Fork failed %s", "");
-        saveLogs("Fork failed %s", logFile, "");
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed ", logFile, NULL, NULL);
         exit(1);
-    }
-    else if (pid == 0) { // Child process
+    } else if (pid == 0) { 
         DIR *dir = opendir(folderName);
         struct dirent *entry;
-
         if (dir == NULL) {
-            printf("Error: Directory '%s' not found.", folderName);
-            saveLogs("Error: Directory '%s' not found.", logFile, folderName);
+            write_message(STDOUT, "Error: Directory not found \n");
+            saveLogs("Error: Directory not found: ", logFile, folderName, NULL);
             exit(1);
         }
-
-        printf("Listing directory: %s\n", folderName);
         while ((entry = readdir(dir)) != NULL) {
-            printf("%s\n", entry->d_name);
+            write(STDOUT, entry->d_name, strlen(entry->d_name));
+            write(STDOUT, "\n", 1);
         }
-
         closedir(dir);
-        exit(0); // Child process exits after listing
-    }
-    else { // Parent process
-        wait(NULL); // Wait for the child process to complete
+        exit(0);
+    } else {
+        wait(NULL);
     }
 }
 
-void listFilesByExtension(const char* folderName, const char* extension, const int logFile){
-    
-    pid_t pid = fork(); // Create a new process
+void listFilesByExtension(const char* folderName, const char* extension, const int logFile) {
+    pid_t pid = fork();
     int found = 0;
     if (pid < 0) {
-        printf("Fork failed %s", "");
-        saveLogs("Fork failed %s", logFile, "");
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed", logFile, NULL, NULL);
         exit(1);
-    }
-    else if (pid == 0) { // Child process
+    } else if (pid == 0) { 
         struct dirent *entry;
         DIR *dir = opendir(folderName);
         if (dir == NULL) {
-            printf("Error: Directory '%s' not found.", folderName);
-            saveLogs("Error: Directory '%s' not found.", logFile, folderName);
+            write_message(STDOUT, "Error: Directory not found \n");
+            saveLogs("Error: Directory  not found: ", logFile, folderName, NULL);
             exit(1);
         }
-
         while ((entry = readdir(dir)) != NULL) {
-            if(strstr(entry->d_name, extension) != NULL){
-               printf("%s\n", entry->d_name);  // Print each file/folder name
+            if (strstr(entry->d_name, extension) != NULL) {
+                write(STDOUT, entry->d_name, strlen(entry->d_name));
+                write(STDOUT, "\n", 1);
                 ++found;
             }
         }
-
         if (found == 0) {
-            printf("No files with extention '%s' found in '%s'", extension, folderName);
-            saveLogs("No files with extention '%s' found in '%s'", logFile, extension, folderName);
-    }
-
+            write_message(STDOUT, "No matching files found \n");
+            saveLogs("No files with extension found in  directory", logFile, extension, folderName);
+        }
         closedir(dir);
-        exit(0); // Child process exits after listing
-    }
-    else { // Parent process
-        wait(NULL); // Wait for the child process to complete
+        exit(0);
+    } else {
+        wait(NULL);
     }
 }
 
-void readFile(const char* fileName, const int logFile){
+void readFile(const char* fileName, const int logFile) {
     int fd = open(fileName, O_RDONLY);
-
     if (fd == -1) {
-        printf("Error: File '%s' not found.", fileName);
-        saveLogs("Error: File '%s' not found.", logFile, fileName);
+        write_message(STDOUT, "Error: File not found \n");
+        saveLogs("Error: File not found: ", logFile, fileName, NULL);
         return;
     }
 
     char buff[256];
     ssize_t bytes;
-
-    while((bytes = read(fd, buff, sizeof(buff)-1)) > 0) {
-        buff[bytes] = '\0';
-        printf("%s", buff);
+    while ((bytes = read(fd, buff, sizeof(buff) - 1)) > 0) {
+        write(STDOUT, buff, bytes);
     }
 
     if (bytes == -1) {
-        printf("Error reading file '%s'.", fileName);
-        saveLogs("Error reading file '%s'.", logFile, fileName);
+        write_message(STDOUT, "Error reading file \n");
+        saveLogs("Error reading file: ", logFile, fileName, NULL);
     } else {
-        saveLogs("File '%s' read successfuly.", logFile, fileName);
+        saveLogs("File read successfully: ", logFile, fileName, NULL);
     }
 
-    close(fd); // Close file descriptor
+    close(fd);
 }
 
-void appendToFile(const char* fileName, const char* content, const int logFile){
+void appendToFile(const char* fileName, const char* content, const int logFile) {
     int fd = open(fileName, O_WRONLY | O_APPEND);
-
     if (fd == -1) { 
-        printf("Error: File '%s' not found.", fileName);
-        saveLogs("Error: File '%s' not found.", logFile, fileName);
+        write_message(STDOUT, "Error: File not found\n");
+        saveLogs("Error: File not found: ", logFile, fileName, NULL);
         return;
     }
 
-    //Setting up file lock
     struct flock lock;
     lock.l_type = F_WRLCK;
     lock.l_whence = SEEK_SET;
     lock.l_start = 0;
-    lock.l_len = 0;  // Lock the whole file
+    lock.l_len = 0;
 
-    if (fcntl(fd, F_SETLK, &lock) == -1) { // Try locking
-        printf("Error: Cannot write to '%s'. File is locked or read-only.", fileName);
-        saveLogs("Error: Cannot write to '%s'. File is locked or read-only.", logFile, fileName);
+    if (fcntl(fd, F_SETLK, &lock) == -1) {
+        write_message(STDOUT, "Error: Cannot write. File is locked\n");
+        saveLogs("Error: Cannot write to file. File is locked: ", logFile, fileName, NULL);
         close(fd);
         return;
     }
 
-    // Write new content to the file
     if (write(fd, content, strlen(content)) == -1) {
-        printf("Error writing to a file '%s'.", fileName);
-        saveLogs("Error writing to a file '%s'.", logFile, fileName);
+        write_message(STDOUT, "Error writing to file.\n");
+        saveLogs("Error writing to file: ", logFile, fileName, NULL);
     } else {
-        printf("Content appended successfully to '%s'.", fileName);
-        saveLogs("Content appended successfully to '%s'.", logFile, fileName);
+        write_message(STDOUT, "Content appended successfully.\n");
+        saveLogs("Content appended successfully to file: ", logFile, fileName, NULL);
     }
 
-    // Unlock file
     lock.l_type = F_UNLCK;
     fcntl(fd, F_SETLK, &lock);
-
-    close(fd); // Close file descriptor
+    close(fd);
 }
 
-void deleteFile(const char* fileName, const int logFile){
+void deleteFile(const char* fileName, const int logFile) {
     pid_t pid = fork();
-
-    if(pid < 0) {
-        printf("Fork failed %s", "");
-        saveLogs("Fork failed %s", logFile, "");
+    if (pid < 0) {
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed ", logFile, NULL, NULL);
         return;
     }
-
-    if (pid == 0 ) {
-        if (access(fileName, F_OK)  == -1) {
-            printf("Error: File '%s' not found.", fileName);
-            saveLogs("Error: File '%s' not found.", logFile, fileName);
-            exit(1);
-        }
-
-        // Delete the file
-        if (remove(fileName) == 0) {
-            printf("File '%s' deleted successfully.", fileName);
-            saveLogs("File '%s' deleted successfully.", logFile, fileName);
+    if (pid == 0) {
+        if (unlink(fileName) == 0) {
+            write_message(STDOUT, "File deleted successfully \n");
+            saveLogs("File deleted successfully: ", logFile, fileName, NULL);
         } else {
-            printf("Error deleting a file '%s'.", fileName);
-            saveLogs("Error deleting a file '%s'.", logFile, fileName);
+            write_message(STDOUT, "Error deleting file \n");
+            saveLogs("Error deleting file: ", logFile, fileName, NULL);
         }
         exit(0);
     } else {
-        wait (NULL);
+        wait(NULL);
     }
 }
 
 void deleteDir(const char* folderName, const int logFile) {
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        printf("Fork failed %s", "");
-        saveLogs("Fork failed %s", logFile, "");
+    int dirFD = open(folderName, O_DIRECTORY);
+    if (dirFD < 0) {
+        write_message(STDOUT, "Error opening directory.\n");
+        saveLogs("Error opening directory: ", logFile, folderName, NULL);
         return;
     }
 
-    if (pid == 0) { // Child process
-        // Check if the directory exists
-        DIR* dir = opendir(folderName);
-        if (dir == NULL) {
-            printf("Error: Directory '%s' not found.", folderName);
-            saveLogs("Error: Directory '%s' not found.", logFile, folderName);
-            exit(1);
-        }
+    DIR* dir = fdopendir(dirFD);
+    if (dir == NULL) {
+        write_message(STDOUT, "Error accessing directory.\n");
+        saveLogs("Error accessing directory:", logFile, folderName, NULL);
+        close(dirFD);
+        return;
+    }
 
-        // Check if directory is empty
-        struct dirent* entry;
-        int isEmpty = 1;
-        while ((entry = readdir(dir)) != NULL) {
-            if (entry->d_name[0] != '.') { // Ignore "." and ".."
-                isEmpty = 0;
-                break;
-            }
-        }
-        closedir(dir);
+    struct dirent* entry;
+    int isEmpty = 1; // Assume empty
 
-        if (!isEmpty) {
-            printf("Error: Directory '%s' is not empty.", folderName);
-            saveLogs("Error: Directory '%s' is not empty.", logFile, folderName);
-            exit(1);
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_name[0] != '.') { // Ignore `.` and `..`
+            isEmpty = 0; // Directory is not empty
+            break;
         }
+    }
+    closedir(dir);
 
-        // Delete the directory
+    if (!isEmpty) {
+        write_message(STDOUT, "Directory is not empty.\n");
+        saveLogs("Directory '%s' is not empty.", logFile, folderName, NULL);
+        return;
+    }
+    pid_t pid = fork();
+    if (pid < 0) {
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed ", logFile, NULL, NULL);
+        return;
+    }
+    if (pid == 0) {
         if (rmdir(folderName) == 0) {
-            printf("Directory '%s' deleted successfully.", folderName);
-            saveLogs("Directory '%s' deleted successfully.", logFile, folderName);
+            write_message(STDOUT, "Directory deleted successfully \n");
+            saveLogs("Directory deleted successfully: ", logFile, folderName, NULL);
         } else {
-            printf("Error deleting a Directory '%s'.", folderName);
-            saveLogs("Error deleting a Directory '%s'.", logFile, folderName);
+            write_message(STDOUT, "Error deleting directory \n");
+            saveLogs("Error deleting directory: ", logFile, folderName, NULL);
         }
         exit(0);
     } else {
-        wait(NULL); // Parent process waits for child
+        wait(NULL);
     }
 }
 
-void showLogs(const int logFile){
+void showLogs(const int logFile) {
     char buff[1024];
     ssize_t bytes;
-
-    // move to begining of the file
     lseek(logFile, 0, SEEK_SET);
-
-    while((bytes = read(logFile, buff, sizeof(buff)-1)) > 0) {
-        buff[bytes] = '\0';
-        printf("%s", buff);
-        if(bytes == -1) {
-            perror("Error reading log file");
-        }
+    while ((bytes = read(logFile, buff, sizeof(buff) - 1)) > 0) {
+        write(STDOUT, buff, bytes);
     }
 }
 
-
-/* Helper functions */
-
-void saveLogs(const char* format, const int logFile, ...) {
-
-    // get current timestamp
-    char timestamp[25];      
+/* Helper Functions */
+void saveLogs(const char* format, const int logFile, const char* arg1, const char* arg2) {
+    char timestamp[25];
     getCurrentTimestamp(timestamp, sizeof(timestamp));
 
-    // compose the result
     char message[256];
-    va_list args;
-    va_start(args, logFile);
+    
+    // Manually create the log message
+    strcpy(message, timestamp);
+    strcat(message, " ");
+    strcat(message, format);
+    if (arg1 != NULL) {
+        strcat(message, " ");
+        strcat(message, arg1);
+    }
+    if (arg2 != NULL) {
+        strcat(message, " ");
+        strcat(message, arg2);
+    }
+    strcat(message, "\n");
 
-    vsnprintf(message, sizeof(message), format, args);
-    va_end(args);
-
-    char result[300];
-    snprintf(result, sizeof(result), "%s %s\n", timestamp, message);
-
-    write(logFile, result, strlen(result));
+    write(logFile, message, strlen(message));
 }
 
 
 void getCurrentTimestamp(char *buffer, size_t size) {
-    time_t now = time(NULL);       // Get current time
-    struct tm *tm_info = localtime(&now);  // Convert to local time
-
-    strftime(buffer, size, "[%Y-%m-%d %H:%M:%S]", tm_info);  // Format timestamp
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(buffer, size, "[%Y-%m-%d %H:%M:%S]", tm_info);
 }
-

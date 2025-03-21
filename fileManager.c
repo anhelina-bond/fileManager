@@ -90,9 +90,14 @@ void listFilesByExtension(const char* folderName, const char* extension, const i
             saveLogs("Error: Directory  not found: ", logFile, folderName, NULL);
             exit(1);
         }
+        
+        size_t ext_len = strlen(extension);
+
         while ((entry = readdir(dir)) != NULL) {
-            if (strstr(entry->d_name, extension) != NULL) {
-                write(STDOUT, entry->d_name, strlen(entry->d_name));
+            char *filename = entry->d_name;
+            size_t len = strlen(filename);
+            if (strstr(len > ext_len && strcmp(filename + (len - ext_len), extension) == 0) != NULL) {
+                write(STDOUT, filename, len);
                 write(STDOUT, "\n", 1);
                 ++found;
             }

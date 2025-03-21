@@ -10,6 +10,6 @@ void appendToFile(const char* fileName, const char* content, const int logFile);
 void deleteFile(const char* fileName, const int logFile);
 void deleteDir(const char* folderName, const int logFile);
 void showLogs(const int logFile);
-void saveLogs(const char* message, const int logFile, ...);
+void saveLogs(const char* format, const int logFile, const char* arg1, const char* arg2 ) ;
 void getCurrentTimestamp(char *buffer, size_t size);
 #endif
