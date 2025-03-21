@@ -80,7 +80,7 @@ void listFilesByExtension(const char* folderName, const char* extension, const i
     int found = 0;
     if (pid < 0) {
         write_message(STDOUT, "Fork failed \n");
-        saveLogs("Fork failed", logFile);
+        saveLogs("Fork failed", logFile, NULL, NULL);
         exit(1);
     } else if (pid == 0) { 
         struct dirent *entry;
