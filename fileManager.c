@@ -21,15 +21,15 @@ void write_message(int fd, const char *message) {
 void createDir(const char* folderName, const int logFile) {
     if (mkdir(folderName, 0777) == -1) {  
         if (errno == EEXIST) {
-            write_message(STDOUT, "Error: Directory already exists.\n");
-            saveLogs("Error: Directory '%s' already exists.", logFile, folderName);
+            write_message(STDOUT, "Error: Directory already exists \n");
+            saveLogs("Error: Directory already exists: ", logFile, folderName, NULL);
         } else {
-            write_message(STDOUT, "Error: Creating directory failed.\n");
-            saveLogs("Error: Creating directory '%s' failed.", logFile, folderName);
+            write_message(STDOUT, "Error: Creating directory failed \n");
+            saveLogs("Error: Creating directory failed: ", logFile, folderName, NULL);
         }
     } else {
-        write_message(STDOUT, "Directory created successfully.\n");
-        saveLogs("Directory '%s' created successfully.", logFile, folderName);
+        write_message(STDOUT, "Directory created successfully \n");
+        saveLogs("Directory created successfully: ", logFile, folderName, NULL);
     }
 }
 
@@ -37,15 +37,15 @@ void createFile(const char* fileName, const int logFile) {
     int fd = open(fileName, O_CREAT | O_EXCL | O_WRONLY, 0777);
     if (fd == -1) {
         if (errno == EEXIST) {
-            write_message(STDOUT, "Error: File already exists.\n");
-            saveLogs("Error: File '%s' already exists.", logFile, fileName);
+            write_message(STDOUT, "Error: File already exists \n");
+            saveLogs("Error: File already exists: ", logFile, fileName, NULL);
         } else {
-            write_message(STDOUT, "Error: Creating file failed.\n");
-            saveLogs("Error: Creating file '%s' failed.", logFile, fileName);
+            write_message(STDOUT, "Error: Creating file failed \n");
+            saveLogs("Error: Creating file failed: ", logFile, fileName, NULL);
         }
     } else {
-        write_message(STDOUT, "File created successfully.\n");
-        saveLogs("File '%s' created successfully.", logFile, fileName);
+        write_message(STDOUT, "File created successfully \n");
+        saveLogs("File created successfully: ", logFile, fileName, NULL);
     }
     close(fd);
 }
@@ -53,15 +53,15 @@ void createFile(const char* fileName, const int logFile) {
 void listDir(const char *folderName, const int logFile) {
     pid_t pid = fork();
     if (pid < 0) {
-        write_message(STDOUT, "Fork failed.\n");
-        saveLogs("Fork failed.", logFile);
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed ", logFile, NULL, NULL);
         exit(1);
     } else if (pid == 0) { 
         DIR *dir = opendir(folderName);
         struct dirent *entry;
         if (dir == NULL) {
-            write_message(STDOUT, "Error: Directory not found.\n");
-            saveLogs("Error: Directory '%s' not found.", logFile, folderName);
+            write_message(STDOUT, "Error: Directory not found \n");
+            saveLogs("Error: Directory not found: ", logFile, folderName, NULL);
             exit(1);
         }
         while ((entry = readdir(dir)) != NULL) {
@@ -79,15 +79,15 @@ void listFilesByExtension(const char* folderName, const char* extension, const i
     pid_t pid = fork();
     int found = 0;
     if (pid < 0) {
-        write_message(STDOUT, "Fork failed.\n");
-        saveLogs("Fork failed.", logFile);
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed", logFile);
         exit(1);
     } else if (pid == 0) { 
         struct dirent *entry;
         DIR *dir = opendir(folderName);
         if (dir == NULL) {
-            write_message(STDOUT, "Error: Directory not found.\n");
-            saveLogs("Error: Directory '%s' not found.", logFile, folderName);
+            write_message(STDOUT, "Error: Directory not found \n");
+            saveLogs("Error: Directory  not found: ", logFile, folderName, NULL);
             exit(1);
         }
         while ((entry = readdir(dir)) != NULL) {
@@ -98,8 +98,8 @@ void listFilesByExtension(const char* folderName, const char* extension, const i
             }
         }
         if (found == 0) {
-            write_message(STDOUT, "No matching files found.\n");
-            saveLogs("No files with extension '%s' found in '%s'", logFile, extension, folderName);
+            write_message(STDOUT, "No matching files found \n");
+            saveLogs("No files with extension found in  directory", logFile, extension, folderName);
         }
         closedir(dir);
         exit(0);
@@ -111,8 +111,8 @@ void listFilesByExtension(const char* folderName, const char* extension, const i
 void readFile(const char* fileName, const int logFile) {
     int fd = open(fileName, O_RDONLY);
     if (fd == -1) {
-        write_message(STDOUT, "Error: File not found.\n");
-        saveLogs("Error: File '%s' not found.", logFile, fileName);
+        write_message(STDOUT, "Error: File not found \n");
+        saveLogs("Error: File not found: ", logFile, fileName, NULL);
         return;
     }
 
@@ -123,10 +123,10 @@ void readFile(const char* fileName, const int logFile) {
     }
 
     if (bytes == -1) {
-        write_message(STDOUT, "Error reading file.\n");
-        saveLogs("Error reading file '%s'.", logFile, fileName);
+        write_message(STDOUT, "Error reading file \n");
+        saveLogs("Error reading file: ", logFile, fileName, NULL);
     } else {
-        saveLogs("File '%s' read successfully.", logFile, fileName);
+        saveLogs("File read successfully: ", logFile, fileName, NULL);
     }
 
     close(fd);
@@ -135,17 +135,17 @@ void readFile(const char* fileName, const int logFile) {
 void deleteFile(const char* fileName, const int logFile) {
     pid_t pid = fork();
     if (pid < 0) {
-        write_message(STDOUT, "Fork failed.\n");
-        saveLogs("Fork failed.", logFile);
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed ", logFile, NULL, NULL);
         return;
     }
     if (pid == 0) {
         if (unlink(fileName) == 0) {
-            write_message(STDOUT, "File deleted successfully.\n");
-            saveLogs("File '%s' deleted successfully.", logFile, fileName);
+            write_message(STDOUT, "File deleted successfully \n");
+            saveLogs("File deleted successfully: ", logFile, fileName, NULL);
         } else {
-            write_message(STDOUT, "Error deleting file.\n");
-            saveLogs("Error deleting file '%s'.", logFile, fileName);
+            write_message(STDOUT, "Error deleting file \n");
+            saveLogs("Error deleting file: ", logFile, fileName, NULL);
         }
         exit(0);
     } else {
@@ -156,17 +156,17 @@ void deleteFile(const char* fileName, const int logFile) {
 void deleteDir(const char* folderName, const int logFile) {
     pid_t pid = fork();
     if (pid < 0) {
-        write_message(STDOUT, "Fork failed.\n");
-        saveLogs("Fork failed.", logFile);
+        write_message(STDOUT, "Fork failed \n");
+        saveLogs("Fork failed ", logFile, NULL, NULL);
         return;
     }
     if (pid == 0) {
         if (rmdir(folderName) == 0) {
-            write_message(STDOUT, "Directory deleted successfully.\n");
-            saveLogs("Directory '%s' deleted successfully.", logFile, folderName);
+            write_message(STDOUT, "Directory deleted successfully \n");
+            saveLogs("Directory deleted successfully: ", logFile, folderName, NULL);
         } else {
-            write_message(STDOUT, "Error deleting directory.\n");
-            saveLogs("Error deleting directory '%s'.", logFile, folderName);
+            write_message(STDOUT, "Error deleting directory \n");
+            saveLogs("Error deleting directory: ", logFile, folderName, NULL);
         }
         exit(0);
     } else {
