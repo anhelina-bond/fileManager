@@ -184,7 +184,7 @@ void showLogs(const int logFile) {
 }
 
 /* Helper Functions */
-void saveLogs(const char* format, const int logFile, const char* arg1, const char* arg2) {
+void saveLogs(const char* format, const int logFile, const char* arg1 = NULL, const char* arg2 = NULL) {
     char timestamp[25];
     getCurrentTimestamp(timestamp, sizeof(timestamp));
 
