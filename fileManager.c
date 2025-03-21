@@ -188,6 +188,37 @@ void deleteFile(const char* fileName, const int logFile) {
 }
 
 void deleteDir(const char* folderName, const int logFile) {
+    int dirFD = open(folderName, O_DIRECTORY);
+    if (dirFD < 0) {
+        write_message(STDOUT, "Error opening directory.\n");
+        saveLogs("Error opening directory: ", logFile, folderName, NULL);
+        return;
+    }
+
+    DIR* dir = fdopendir(dirFD);
+    if (dir == NULL) {
+        write_message(STDOUT, "Error accessing directory.\n");
+        saveLogs("Error accessing directory:", logFile, folderName, NULL);
+        close(dirFD);
+        return;
+    }
+
+    struct dirent* entry;
+    int isEmpty = 1; // Assume empty
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_name[0] != '.') { // Ignore `.` and `..`
+            isEmpty = 0; // Directory is not empty
+            break;
+        }
+    }
+    closedir(dir);
+
+    if (!isEmpty) {
+        write_message(STDOUT, "Directory is not empty.\n");
+        saveLogs("Directory '%s' is not empty.", logFile, folderName, NULL);
+        return;
+    }
     pid_t pid = fork();
     if (pid < 0) {
         write_message(STDOUT, "Fork failed \n");
