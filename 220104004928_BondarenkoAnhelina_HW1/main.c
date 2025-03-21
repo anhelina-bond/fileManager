@@ -6,13 +6,15 @@
 #include <fcntl.h>
 #include "fileManager.h"
 
+#define LOG_FILE "log.txt"
+
 int main(int argc, char *argv[]) {
     char input[256];
     char command[50];
     char arg1[100];    
     char arg2[100];
 
-    if (argc == 1) {
+    if (argc == 1) {        //if no arguments provided
         printf("Available commands: \n createDir 'folderName' \n createFile 'fileName' \n listDir 'folderName' \n listFilesByExtension 'folderName' '.txt' \n readFile 'fileName'\n appendToFile 'fileName' 'new content' \n deleteFile 'fileName'\n deleteDir 'folderName'\n showLogs\n exit\n>> ");
         
         fgets(input, sizeof(input), stdin);  // Read full input
@@ -23,16 +25,16 @@ int main(int argc, char *argv[]) {
 
         // Parse input safely
         sscanf(input, "%49s %99s %99[^\n]", command, arg1, arg2);
-    } else {
+    } else {        // arguments provided
         strcpy(command, argv[1]);
         strcpy(arg1, argc > 2 ? argv[2] : "");
         strcpy(arg2, argc > 3 ? argv[3] : "");
     }
 
-    // Create log file
-    int logFile = open("logs.txt", O_RDWR | O_CREAT, 0777);
+    // create log file
+    int logFile = open(LOG_FILE, O_RDWR | O_APPEND | O_CREAT, 0777);
 
-    
+    // run command
     do {
         // Command execution
         if (strcmp(command, "createDir") == 0) {
@@ -61,7 +63,7 @@ int main(int argc, char *argv[]) {
         arg1[0] = '\0';
         arg2[0] = '\0';
 
-        printf(">> ");
+        printf("\n>> ");
         fgets(input, sizeof(input), stdin);  // Read next command
         input[strcspn(input, "\n")] = 0;     // Remove newline
 
