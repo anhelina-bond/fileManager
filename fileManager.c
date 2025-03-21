@@ -132,6 +132,40 @@ void readFile(const char* fileName, const int logFile) {
     close(fd);
 }
 
+void appendToFile(const char* fileName, const char* content, const int logFile) {
+    int fd = open(fileName, O_WRONLY | O_APPEND);
+    if (fd == -1) { 
+        write_message(STDOUT, "Error: File not found\n");
+        saveLogs("Error: File not found: ", logFile, fileName, NULL);
+        return;
+    }
+
+    struct flock lock;
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0;
+
+    if (fcntl(fd, F_SETLK, &lock) == -1) {
+        write_message(STDOUT, "Error: Cannot write. File is locked\n");
+        saveLogs("Error: Cannot write to file. File is locked: ", logFile, fileName, NULL);
+        close(fd);
+        return;
+    }
+
+    if (write(fd, content, strlen(content)) == -1) {
+        write_message(STDOUT, "Error writing to file.\n");
+        saveLogs("Error writing to file: ", logFile, fileName, NULL);
+    } else {
+        write_message(STDOUT, "Content appended successfully.\n");
+        saveLogs("Content appended successfully to file: ", logFile, fileName, NULL);
+    }
+
+    lock.l_type = F_UNLCK;
+    fcntl(fd, F_SETLK, &lock);
+    close(fd);
+}
+
 void deleteFile(const char* fileName, const int logFile) {
     pid_t pid = fork();
     if (pid < 0) {
