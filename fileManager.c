@@ -96,7 +96,7 @@ void listFilesByExtension(const char* folderName, const char* extension, const i
         while ((entry = readdir(dir)) != NULL) {
             char *filename = entry->d_name;
             size_t len = strlen(filename);
-            if (strstr(len > ext_len && strcmp(filename + (len - ext_len), extension) == 0) != NULL) {
+            if (len > ext_len && strcmp(filename + (len - ext_len), extension) == 0) {
                 write(STDOUT, filename, len);
                 write(STDOUT, "\n", 1);
                 ++found;
